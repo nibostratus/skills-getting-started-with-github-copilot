@@ -38,6 +38,42 @@ activities = {
         "schedule": "Mondays, Wednesdays, Fridays, 2:00 PM - 3:00 PM",
         "max_participants": 30,
         "participants": ["john@mergington.edu", "olivia@mergington.edu"]
+    },
+    "Soccer Team": {
+        "description": "Team training, fitness drills, and friendly matches",
+        "schedule": "Mondays and Thursdays, 4:00 PM - 5:30 PM",
+        "max_participants": 22,
+        "participants": ["liam@mergington.edu", "noah@mergington.edu"]
+    },
+    "Basketball Club": {
+        "description": "Practice shooting, teamwork, and game strategy",
+        "schedule": "Wednesdays and Fridays, 4:00 PM - 5:30 PM",
+        "max_participants": 18,
+        "participants": ["ava@mergington.edu", "ethan@mergington.edu"]
+    },
+    "School Band": {
+        "description": "Perform contemporary and classical pieces as an ensemble",
+        "schedule": "Tuesdays, 3:30 PM - 5:00 PM",
+        "max_participants": 25,
+        "participants": ["mia@mergington.edu", "lucas@mergington.edu"]
+    },
+    "Drama Club": {
+        "description": "Acting workshops, stage practice, and school productions",
+        "schedule": "Thursdays, 3:30 PM - 5:00 PM",
+        "max_participants": 20,
+        "participants": ["harper@mergington.edu", "jackson@mergington.edu"]
+    },
+    "Debate Society": {
+        "description": "Develop public speaking and argumentation skills",
+        "schedule": "Wednesdays, 3:30 PM - 5:00 PM",
+        "max_participants": 16,
+        "participants": ["amelia@mergington.edu", "henry@mergington.edu"]
+    },
+    "Math Olympiad": {
+        "description": "Solve advanced math problems and prepare for competitions",
+        "schedule": "Fridays, 3:30 PM - 5:00 PM",
+        "max_participants": 15,
+        "participants": ["elijah@mergington.edu", "charlotte@mergington.edu"]
     }
 }
 
@@ -62,6 +98,41 @@ def signup_for_activity(activity_name: str, email: str):
     # Get the specific activity
     activity = activities[activity_name]
 
+    normalized_email = email.strip().lower()
+
+    # Prevent duplicate signups for the same activity.
+    if normalized_email in [participant.lower() for participant in activity["participants"]]:
+        raise HTTPException(
+            status_code=409,
+            detail=f"{email} is already signed up for {activity_name}"
+        )
+
+    # Enforce max participant capacity.
+    if len(activity["participants"]) >= activity["max_participants"]:
+        raise HTTPException(status_code=400, detail=f"{activity_name} is full")
+
     # Add student
-    activity["participants"].append(email)
-    return {"message": f"Signed up {email} for {activity_name}"}
+    activity["participants"].append(normalized_email)
+    return {"message": f"Signed up {normalized_email} for {activity_name}"}
+
+
+@app.delete("/activities/{activity_name}/participants")
+def unregister_participant(activity_name: str, email: str):
+    """Unregister a student from an activity"""
+    if activity_name not in activities:
+        raise HTTPException(status_code=404, detail="Activity not found")
+
+    activity = activities[activity_name]
+    normalized_email = email.strip().lower()
+
+    participant_lookup = [participant.lower() for participant in activity["participants"]]
+    if normalized_email not in participant_lookup:
+        raise HTTPException(
+            status_code=404,
+            detail=f"{email} is not signed up for {activity_name}"
+        )
+
+    # Remove matching participant while preserving stored value casing format.
+    participant_index = participant_lookup.index(normalized_email)
+    removed_participant = activity["participants"].pop(participant_index)
+    return {"message": f"Unregistered {removed_participant} from {activity_name}"}
